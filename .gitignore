@@ -1,3 +1,31 @@
-# Ignore virtual environment
-.env/
+# Environment & secrets
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
 venv/
+
+# FAISS & data
+vectorstore/
+backend/vectorstore/
+backend/pdfs/
+
+# Node
+node_modules/
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Internal docs
+CODE_REVIEW.md

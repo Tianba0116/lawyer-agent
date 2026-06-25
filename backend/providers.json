@@ -1,0 +1,55 @@
+{
+  "providers": [
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "icon": "🪷",
+      "model": "deepseek-chat",
+      "type": "deepseek",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "base_url": "",
+      "builtin": true
+    },
+    {
+      "id": "qwen",
+      "name": "通义千问",
+      "icon": "☁️",
+      "model": "qwen3.7-plus",
+      "type": "openai",
+      "api_key_env": "QWEN_API_KEY",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "builtin": true
+    },
+    {
+      "id": "moonshot",
+      "name": "Moonshot (Kimi)",
+      "icon": "🚀",
+      "model": "moonshot-v1-8k",
+      "type": "openai",
+      "api_key_env": "MOONSHOT_API_KEY",
+      "base_url": "https://api.moonshot.cn/v1",
+      "builtin": true
+    },
+    {
+      "id": "zhipu",
+      "name": "智谱 GLM",
+      "icon": "🧠",
+      "model": "glm-4-plus",
+      "type": "openai",
+      "api_key_env": "ZHIPU_API_KEY",
+      "base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "builtin": true
+    },
+    {
+      "id": "doubao",
+      "name": "豆包 (字节)",
+      "icon": "🫘",
+      "model": "doubao-pro-32k",
+      "type": "openai",
+      "api_key_env": "DOUBAO_API_KEY",
+      "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+      "builtin": true
+    }
+  ],
+  "active": "deepseek"
+}
