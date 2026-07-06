@@ -27,5 +27,11 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 
+# Claude config
+.claude/
+
+# OCR output (may contain sensitive docs)
+backend/ocr_output/
+
 # Internal docs
 CODE_REVIEW.md

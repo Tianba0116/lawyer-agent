@@ -4,6 +4,7 @@ import asyncio
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, AIMessage
 
@@ -17,6 +18,10 @@ from providers import (
 )
 
 app = FastAPI(title="AI 法律助手 API")
+
+# 挂载 OCR 输出目录，可通过浏览器直接访问 http://localhost:8000/output/
+os.makedirs(config.ocr_output_dir, exist_ok=True)
+app.mount("/output", StaticFiles(directory=config.ocr_output_dir, html=True), name="ocr_output")
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,8 +61,18 @@ async def upload(file: UploadFile = File(...)):
     with open(file_path, "wb") as f:
         f.write(contents)
 
+    # 自动检测 PDF 类型（秒级，不耗时）
+    from ocr import detect_pdf_type
+    pdf_type = detect_pdf_type(file_path)
+
+    # 索引（文本型秒级完成；扫描件 OCR 需要数分钟）
     index_pdf(file_path)
-    return {"file_name": file.filename, "status": "indexed"}
+
+    return {
+        "file_name": file.filename,
+        "status": "indexed",
+        "pdf_type": pdf_type,
+    }
 
 
 @app.post("/api/query")
@@ -142,6 +157,95 @@ def get_documents():
     """列出知识库中所有已索引的文档"""
     docs = list_documents()
     return {"documents": docs, "count": len(docs)}
+
+
+@app.get("/api/documents/{file_name}/content")
+def get_document_content(file_name: str):
+    """获取文档的 OCR 提取全文内容。
+
+    - 扫描件：返回 ocr_output/{name}/document.md 的内容
+    - 文本型：返回 pdfplumber 提取的原始文本
+    """
+    import os
+    from pathlib import Path
+
+    # 先查注册表确认文档存在
+    from rag.vector_db import _load_registry
+    reg = _load_registry()
+    if file_name not in reg:
+        return {"error": "文档不存在"}, 404
+
+    pdf_type = reg[file_name].get("pdf_type", "text")
+
+    # 扫描件：优先读 OCR 产出的 document.md
+    if pdf_type == "scanned":
+        name_stem = Path(file_name).stem
+        md_path = Path(config.ocr_output_dir) / name_stem / "document.md"
+        if md_path.exists():
+            content = md_path.read_text(encoding="utf-8")
+            # 获取实际页数
+            pdf_path = os.path.join(config.pdfs_dir, file_name)
+            page_count = 1
+            if os.path.exists(pdf_path):
+                import fitz
+                pdoc = fitz.open(pdf_path)
+                page_count = pdoc.page_count
+                pdoc.close()
+            return {
+                "file_name": file_name,
+                "pdf_type": "scanned",
+                "content": content,
+                "source": str(md_path),
+                "pages": page_count,
+            }
+
+    # 文本型 / fallback：用 pdfplumber 提取
+    pdf_path = os.path.join(config.pdfs_dir, file_name)
+    if not os.path.exists(pdf_path):
+        return {"error": "PDF 文件不存在"}, 404
+
+    try:
+        from rag.chunker import load_pdf as _load_pdf
+        import fitz
+        docs, _ = _load_pdf(pdf_path)
+        content = "\n\n".join(d.page_content for d in docs)
+        # 获取实际页数
+        pdoc = fitz.open(pdf_path)
+        page_count = pdoc.page_count
+        pdoc.close()
+        return {
+            "file_name": file_name,
+            "pdf_type": pdf_type,
+            "content": content,
+            "chunks": len(docs),
+            "pages": page_count,
+        }
+    except Exception as e:
+        return {"error": f"无法读取文档内容: {str(e)}"}, 500
+
+
+@app.get("/api/documents/{file_name}/pages/{page_num}")
+def get_document_page(file_name: str, page_num: int):
+    """返回 PDF 指定页的 PNG 图片（用于双栏详情页左侧预览）。"""
+    import io as _io
+    import fitz
+
+    pdf_path = os.path.join(config.pdfs_dir, file_name)
+    if not os.path.exists(pdf_path):
+        return {"error": "PDF 文件不存在"}, 404
+
+    doc = fitz.open(pdf_path)
+    if page_num < 1 or page_num > doc.page_count:
+        doc.close()
+        return {"error": f"页码 {page_num} 超出范围 (1-{doc.page_count})"}, 404
+
+    page = doc[page_num - 1]
+    mat = fitz.Matrix(150 / 72, 150 / 72)  # DPI=150
+    pix = page.get_pixmap(matrix=mat)
+    doc.close()
+
+    img_bytes = pix.tobytes("png")
+    return StreamingResponse(_io.BytesIO(img_bytes), media_type="image/png")
 
 
 @app.delete("/api/documents/{file_name}")

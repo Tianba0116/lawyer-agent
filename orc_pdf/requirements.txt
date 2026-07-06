@@ -1,0 +1,6 @@
+paddlepaddle==3.2.2
+paddleocr>=3.5.0
+"paddlex[ocr]"
+pymupdf
+pillow
+numpy

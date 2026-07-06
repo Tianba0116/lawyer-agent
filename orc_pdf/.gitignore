@@ -1,0 +1,20 @@
+# 测试输出
+output_kb/
+output_ocr.md
+__pycache__/
+
+# 测试文件
+*.pdf
+*.png
+*.jpg
+
+# IDE
+.vscode/
+.idea/
+
+# Claude
+.claude/
+
+# Python
+*.pyc
+.venv/

@@ -20,7 +20,17 @@ def _get_embedding_model():
         if config.embed_provider == "ollama":
             _embedding_model = OllamaEmbeddings(model=config.ollama_embed_model)
         else:
-            _embedding_model = HuggingFaceEmbeddings(model_name=config.hf_embed_model)
+            try:
+                _embedding_model = HuggingFaceEmbeddings(
+                    model_name=config.hf_embed_model,
+                    model_kwargs={"local_files_only": True},  # 离线模式，国内网络不连 HuggingFace
+                )
+            except Exception as e:
+                raise RuntimeError(
+                    f"无法加载嵌入模型 '{config.hf_embed_model}'。\n"
+                    f"请确保模型已下载到本地缓存，或设置 HF_ENDPOINT 环境变量。\n"
+                    f"原始错误: {e}"
+                )
     return _embedding_model
 
 
@@ -40,7 +50,7 @@ def _save_registry(reg: dict):
 def index_pdf(file_path: str):
     global _faiss_db
     file_name = os.path.basename(file_path)
-    documents = load_pdf(file_path)
+    documents, ocr_meta = load_pdf(file_path)
     chunks = chunk_documents(documents, file_name)
     embedding = _get_embedding_model()
 
@@ -64,6 +74,7 @@ def index_pdf(file_path: str):
         "chunks": len(chunks),
         "size": os.path.getsize(file_path),
         "uploaded_at": datetime.now().isoformat(),
+        "pdf_type": ocr_meta["pdf_type"] if ocr_meta else "text",
     }
     _save_registry(reg)
 
@@ -91,7 +102,7 @@ def remove_document(file_name: str):
     for fname in reg:
         fpath = os.path.join(config.pdfs_dir, fname)
         if os.path.exists(fpath):
-            docs = load_pdf(fpath)
+            docs, _ = load_pdf(fpath)  # 解包 tuple
             chunks = chunk_documents(docs, fname)
             new_db = FAISS.from_documents(chunks, embedding)
             if _faiss_db is None:
@@ -110,8 +121,14 @@ def list_documents() -> list[dict]:
     result = []
     for name, info in reg.items():
         exists = os.path.exists(os.path.join(config.pdfs_dir, name))
-        result.append({"name": name, "chunks": info["chunks"], "size": info["size"],
-                       "uploaded_at": info.get("uploaded_at", ""), "exists": exists})
+        result.append({
+            "name": name,
+            "chunks": info["chunks"],
+            "size": info["size"],
+            "uploaded_at": info.get("uploaded_at", ""),
+            "exists": exists,
+            "pdf_type": info.get("pdf_type", "text"),
+        })
     return result
 
 
