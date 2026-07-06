@@ -1,6 +1,12 @@
+# ==========================================
+# OCR 扫描件工具 — 依赖
+# 要求 Python 3.10 ~ 3.13
+# ==========================================
+#
+# 安装（国内镜像）:
+#   pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
 paddlepaddle==3.3.1
-paddleocr>=3.5.0
-"paddlex[ocr]"
-pymupdf
-pillow
-numpy
+paddleocr==3.5.0
+paddlex[ocr]>=3.5.0,<3.6.0
+pymupdf==1.28.0

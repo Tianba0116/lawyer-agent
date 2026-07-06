@@ -44,8 +44,8 @@ python-dotenv==1.1.0
 
 # --- OCR 扫描件 PDF 支持 ---
 # 注意：PaddlePaddle 约 500MB，首次安装需 3-5 分钟
-# 如果不需要处理扫描件 PDF，可跳过此部分
+# 如果不需要处理扫描件 PDF，可跳过此部分（pip install 时注释掉下面 4 行）
 paddlepaddle==3.3.1
-paddleocr>=3.5.0
-paddlex[ocr]
-pymupdf
+paddleocr==3.5.0
+paddlex[ocr]>=3.5.0,<3.6.0
+pymupdf==1.28.0
