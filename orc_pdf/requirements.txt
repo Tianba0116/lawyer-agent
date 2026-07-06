@@ -1,4 +1,4 @@
-paddlepaddle==3.2.2
+paddlepaddle==3.3.1
 paddleocr>=3.5.0
 "paddlex[ocr]"
 pymupdf

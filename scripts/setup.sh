@@ -148,13 +148,18 @@ check_prerequisites() {
     PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
     PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
     if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 10 ]; }; then
-      echo -e "  ${RED}✗ Python 版本过低: $PYTHON_VERSION（需要 3.10+）${NC}"
+      echo -e "  ${RED}✗ Python 版本过低: $PYTHON_VERSION（需要 3.10 ~ 3.13）${NC}"
       echo -e "  ${YELLOW}  请安装 Python 3.10+: https://www.python.org/downloads/${NC}"
+      exit 1
+    fi
+    if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 14 ]; then
+      echo -e "  ${RED}✗ Python $PYTHON_VERSION 暂不支持（PaddlePaddle 最高支持 3.13）${NC}"
+      echo -e "  ${YELLOW}  请用 Python 3.12 或 3.13，或用 --skip-ocr 跳过 OCR 依赖${NC}"
       exit 1
     fi
     echo -e "  ${GREEN}✓${NC} Python $(python3 --version)"
   else
-    echo -e "  ${RED}✗ 未找到 python3，请先安装 Python 3.10+${NC}"
+    echo -e "  ${RED}✗ 未找到 python3，请先安装 Python 3.10 ~ 3.13${NC}"
     exit 1
   fi
 
@@ -263,7 +268,7 @@ install_python_deps() {
     echo -e "  ${YELLOW}  常见原因:${NC}"
     echo -e "  ${YELLOW}  1. 网络问题 → 尝试切换镜像: ./scripts/setup.sh --mirror aliyun${NC}"
     echo -e "  ${YELLOW}  2. 磁盘空间不足 → PaddleOCR 需要 ~2GB 空闲空间${NC}"
-    echo -e "  ${YELLOW}  3. Python 版本不兼容 → 确保 Python 3.10+${NC}"
+    echo -e "  ${YELLOW}  3. Python 版本不兼容 → 需要 Python 3.10 ~ 3.13（3.14+ 不支持）${NC}"
     echo -e "  ${YELLOW}  4. 跳过 OCR 重试: ./scripts/setup.sh --skip-ocr${NC}"
     exit 1
   fi

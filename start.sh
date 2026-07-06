@@ -62,7 +62,12 @@ PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
 PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
 
 if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 10 ]; }; then
-    echo -e "${RED}✗ 需要 Python 3.10+，当前版本: $PYTHON_VERSION${NC}"
+    echo -e "${RED}✗ 需要 Python 3.10 ~ 3.13，当前版本: $PYTHON_VERSION${NC}"
+    exit 1
+fi
+if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 14 ]; then
+    echo -e "${RED}✗ Python $PYTHON_VERSION 暂不支持（PaddlePaddle 最高支持 3.13）${NC}"
+    echo -e "${YELLOW}  请用 Python 3.12 或 3.13${NC}"
     exit 1
 fi
 echo -e "  ${GREEN}✓ Python $PYTHON_VERSION${NC}"
