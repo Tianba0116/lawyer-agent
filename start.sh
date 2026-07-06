@@ -19,7 +19,12 @@ NC='\033[0m'
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
-VENV_DIR="$BACKEND_DIR/venv"
+# 优先使用独立 .venv/（dev.sh 创建的），fallback 到 backend/venv/
+if [ -d "$PROJECT_DIR/.venv" ]; then
+  VENV_DIR="$PROJECT_DIR/.venv"
+else
+  VENV_DIR="$BACKEND_DIR/venv"
+fi
 
 PID_BACKEND=""
 PID_FRONTEND=""

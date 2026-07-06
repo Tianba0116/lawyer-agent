@@ -145,30 +145,35 @@ core/config.py  ← 基础设施（chunk_size, top_k, 路径）
 - Python 3.10+
 - Node.js 18+
 
-### 方式一：一键脚本（推荐）
+### 🚀 一键启动（推荐）
 
 ```bash
-# 1. 初始化环境（自动创建 venv、安装依赖、配置镜像）
-./scripts/setup.sh
-
-# 2. 编辑 backend/.env，填入你的 API Key
-vim backend/.env
-# 至少填入: DEEPSEEK_API_KEY=sk-xxxx
-
-# 3. 启动
-./start.sh
+./dev.sh
 ```
+
+首次运行会自动完成：
+- 创建独立虚拟环境 `.venv/`（不污染系统及已有环境）
+- pip/npm 安装所有依赖（默认走清华镜像）
+- 生成 `.env` 配置模板
+- 启动前后端服务
 
 浏览器打开 **http://localhost:5173**
 
-> **💡 镜像选择**：`setup.sh` 默认使用清华大学 TUNA 镜像，也可指定其他源：
-> ```bash
-> ./scripts/setup.sh --mirror aliyun     # 阿里云
-> ./scripts/setup.sh --mirror ustc       # 中科大
-> ./scripts/setup.sh --skip-ocr          # 跳过 PaddleOCR（节省 500MB）
-> ```
+```bash
+# 可选参数
+./dev.sh --skip-ocr          # 跳过 PaddleOCR（节省 ~500MB 下载）
+./dev.sh --mirror aliyun     # 使用阿里云镜像
+./dev.sh --mirror ustc       # 中科大镜像
+./dev.sh --mirror huawei     # 华为云镜像
+```
 
-### 方式二：手动安装
+> **💡 首次启动后**，如需使用 AI 对话功能，编辑 `backend/.env` 填入 API Key：
+> ```bash
+> vim backend/.env  # 修改 DEEPSEEK_API_KEY=sk-xxxx
+> ```
+> 然后重新 `./dev.sh` 启动即可。
+
+### 手动安装
 
 <details>
 <summary>展开手动步骤</summary>

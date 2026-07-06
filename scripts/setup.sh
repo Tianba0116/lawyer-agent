@@ -39,7 +39,7 @@ NC='\033[0m'
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
-VENV_DIR="$BACKEND_DIR/venv"
+VENV_DIR="$PROJECT_DIR/.venv"   # 独立虚拟环境，不与已有 backend/venv/ 冲突
 SCRIPTS_DIR="$PROJECT_DIR/scripts"
 
 SKIP_OCR=false

@@ -31,7 +31,7 @@ NC='\033[0m'
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
-VENV_DIR="$BACKEND_DIR/venv"
+VENV_DIR="$PROJECT_DIR/.venv"   # 与 dev.sh / setup.sh 保持一致
 SELECTED_MIRROR=""
 
 parse_args() {
