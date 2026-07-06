@@ -145,36 +145,85 @@ core/config.py  ← 基础设施（chunk_size, top_k, 路径）
 - Python 3.10+
 - Node.js 18+
 
-### 1. 配置 API Key
+### 方式一：一键脚本（推荐）
 
-编辑 `backend/.env`，至少填入一个供应商的 Key：
+```bash
+# 1. 初始化环境（自动创建 venv、安装依赖、配置镜像）
+./scripts/setup.sh
 
-```env
-DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
+# 2. 编辑 backend/.env，填入你的 API Key
+vim backend/.env
+# 至少填入: DEEPSEEK_API_KEY=sk-xxxx
+
+# 3. 启动
+./start.sh
 ```
 
-### 2. 启动后端
+浏览器打开 **http://localhost:5173**
+
+> **💡 镜像选择**：`setup.sh` 默认使用清华大学 TUNA 镜像，也可指定其他源：
+> ```bash
+> ./scripts/setup.sh --mirror aliyun     # 阿里云
+> ./scripts/setup.sh --mirror ustc       # 中科大
+> ./scripts/setup.sh --skip-ocr          # 跳过 PaddleOCR（节省 500MB）
+> ```
+
+### 方式二：手动安装
+
+<details>
+<summary>展开手动步骤</summary>
+
+#### 1. 配置 API Key
+
+复制并编辑环境变量文件：
+
+```bash
+cp .env.example backend/.env
+vim backend/.env  # 至少填入 DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
+```
+
+#### 2. 启动后端
 
 ```bash
 cd backend
-pip install fastapi uvicorn langchain langchain-deepseek langchain-openai \
-    langchain-community langchain-huggingface langchain-text-splitters \
-    faiss-cpu pdfplumber python-dotenv reportlab sentence-transformers
 
-uvicorn main:app --host 0.0.0.0 --port 8000
+# 国内用户推荐用清华镜像：
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 如不需要 OCR 功能，跳过 paddle 相关依赖：
+# pip install fastapi uvicorn langchain langchain-deepseek langchain-openai \
+#     langchain-community langchain-huggingface langchain-text-splitters \
+#     faiss-cpu pdfplumber python-dotenv reportlab sentence-transformers
+
+HF_ENDPOINT=https://hf-mirror.com uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 后端运行在 **http://localhost:8000**
 
-### 3. 启动前端
+#### 3. 启动前端
 
 ```bash
 cd frontend
-npm install
+
+# 国内用户走 npmmirror：
+npm install --registry=https://registry.npmmirror.com
 npm run dev
 ```
 
 前端运行在 **http://localhost:5173**
+
+</details>
+
+### 国内镜像一览
+
+| 源 | pip | npm | HuggingFace |
+|---|---|---|---|
+| 清华 TUNA | `https://pypi.tuna.tsinghua.edu.cn/simple` | `https://registry.npmmirror.com` | `https://hf-mirror.com` |
+| 阿里云 | `https://mirrors.aliyun.com/pypi/simple/` | `https://registry.npmmirror.com` | `https://hf-mirror.com` |
+| 中科大 | `https://pypi.mirrors.ustc.edu.cn/simple/` | `https://registry.npmmirror.com` | `https://hf-mirror.com` |
+| 华为云 | `https://repo.huaweicloud.com/repository/pypi/simple` | `https://mirrors.huaweicloud.com/repository/npm/` | `https://hf-mirror.com` |
+
+> **⚠️ HuggingFace 被墙**：务必设置环境变量 `HF_ENDPOINT=https://hf-mirror.com`，否则 Embedding 模型（sentence-transformers）下载失败。`setup.sh` 已自动处理。
 
 ---
 
