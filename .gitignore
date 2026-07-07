@@ -36,3 +36,9 @@ backend/ocr_output/
 
 # Internal docs
 CODE_REVIEW.md
+
+# Vite cache
+.vite/
+
+# Logs
+*.log

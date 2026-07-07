@@ -26,6 +26,16 @@ else
   VENV_DIR="$BACKEND_DIR/venv"
 fi
 
+# ── 平台检测 ──────────────────────────────
+case "$(uname)" in
+    CYGWIN*|MSYS*|MINGW*)
+        VENV_ACTIVATE="$VENV_DIR/Scripts/activate"
+        ;;
+    *)
+        VENV_ACTIVATE="$VENV_DIR/bin/activate"
+        ;;
+esac
+
 PID_BACKEND=""
 PID_FRONTEND=""
 
@@ -72,6 +82,43 @@ if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 14 ]; then
 fi
 echo -e "  ${GREEN}✓ Python $PYTHON_VERSION${NC}"
 
+# --- Python 3.14+ auto-find compatible Python (conda) ---
+PYTHON_BIN="python3"
+SKIP_OCR=0
+
+if [ "$PYTHON_MAJOR" -ge 4 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -ge 14 ]; }; then
+    echo -e "  ${YELLOW}⚠ 系统 Python $PYTHON_VERSION 不兼容 PaddlePaddle，搜索替代版本...${NC}"
+
+    CANDIDATES="
+        $HOME/anaconda3/python.exe
+        /c/Users/admin/anaconda3/python.exe
+        /c/ProgramData/anaconda3/python.exe
+    "
+
+    FOUND=0
+    for candidate in $CANDIDATES; do
+        if [ -x "$candidate" ]; then
+            CAND_VER=$("$candidate" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1 || echo "0.0")
+            CAND_MAJOR=$(echo "$CAND_VER" | cut -d. -f1)
+            CAND_MINOR=$(echo "$CAND_VER" | cut -d. -f2)
+            if [ "$CAND_MAJOR" -eq 3 ] && [ "$CAND_MINOR" -ge 10 ] && [ "$CAND_MINOR" -le 13 ]; then
+                PYTHON_BIN="$candidate"
+                PYTHON_VERSION="$CAND_VER"
+                PYTHON_MAJOR="$CAND_MAJOR"
+                PYTHON_MINOR="$CAND_MINOR"
+                FOUND=1
+                echo -e "  ${GREEN}✓ 找到兼容 Python $CAND_VER (conda)${NC}"
+                break
+            fi
+        fi
+    done
+
+    if [ "$FOUND" -eq 0 ]; then
+        SKIP_OCR=1
+        echo -e "  ${YELLOW}⚠ 未找到 Python 3.10-3.13，跳过 OCR 依赖${NC}"
+    fi
+fi
+
 NODE_VERSION=$(node --version 2>/dev/null | grep -oE '[0-9]+' | head -1 || echo "0")
 if [ "$NODE_VERSION" -lt 18 ]; then
     echo -e "${RED}✗ 需要 Node.js 18+，当前版本: $(node --version 2>/dev/null || echo '未安装')${NC}"
@@ -87,9 +134,9 @@ echo -e "${CYAN}[2/5]${NC} 创建虚拟环境 & 配置镜像..."
 # --- 创建 Python venv ---
 if [ ! -d "$VENV_DIR" ]; then
     echo "  创建 Python 虚拟环境..."
-    python3 -m venv "$VENV_DIR"
+    $PYTHON_BIN -m venv "$VENV_DIR"
 fi
-source "$VENV_DIR/bin/activate"
+source "$VENV_ACTIVATE"
 
 # --- pip 持久化镜像（写入 venv 的 pip.conf）---
 PIP_HOST=$(echo "$PIP_MIRROR" | sed -e 's|^https\?://||' -e 's|/.*$||')
@@ -118,14 +165,30 @@ echo -e "${CYAN}[3/5]${NC} 安装后端 Python 依赖..."
 
 cd "$BACKEND_DIR"
 
-if [ ! -f "$VENV_DIR/.deps_installed" ]; then
-    echo "  正在安装（首次约 2-5 分钟，走清华镜像）..."
-    echo "  ℹ 首次安装包含 PaddleOCR (~500MB)，可能需要 3-5 分钟"
-    pip install -r requirements.txt
-    touch "$VENV_DIR/.deps_installed"
-    echo -e "  ${GREEN}✓ Python 依赖安装完成${NC}"
+if [ "$SKIP_OCR" -eq 1 ]; then
+    DEPS_MARKER="$VENV_DIR/.deps_installed_no_ocr"
 else
+    DEPS_MARKER="$VENV_DIR/.deps_installed"
+fi
+
+if [ -f "$DEPS_MARKER" ]; then
     echo -e "  ${GREEN}✓ Python 依赖已就绪（跳过）${NC}"
+else
+    echo "  正在安装（首次约 2-5 分钟，走清华镜像）..."
+    if [ "$SKIP_OCR" -eq 1 ]; then
+        echo "  ⚠ 跳过 PaddleOCR（Python 3.14+ 暂不支持）"
+        grep -v -i -E "paddle|pymupdf" requirements.txt > "$VENV_DIR/requirements-temp.txt"
+        pip install -r "$VENV_DIR/requirements-temp.txt"
+        rm "$VENV_DIR/requirements-temp.txt"
+        # 清除旧的全量标记，避免切换 Python 版本后误判
+        rm -f "$VENV_DIR/.deps_installed"
+    else
+        echo "  ℹ 首次安装包含 PaddleOCR (~500MB)，可能需要 3-5 分钟"
+        pip install -r requirements.txt
+        rm -f "$VENV_DIR/.deps_installed_no_ocr"
+    fi
+    touch "$DEPS_MARKER"
+    echo -e "  ${GREEN}✓ Python 依赖安装完成${NC}"
 fi
 
 # --- 检查 .env ---
@@ -175,7 +238,7 @@ echo ""
 
 # 启动后端（注入 HF_ENDPOINT 确保模型下载走镜像）
 cd "$BACKEND_DIR"
-source "$VENV_DIR/bin/activate"
+source "$VENV_ACTIVATE"
 export HF_ENDPOINT="$HF_MIRROR"
 uvicorn main:app --host 0.0.0.0 --port 8000 &
 PID_BACKEND=$!
